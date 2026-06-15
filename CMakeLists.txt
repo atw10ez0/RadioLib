@@ -17,8 +17,15 @@ if(ESP_PLATFORM)
     SRCS ${RADIOLIB_SOURCES}
     INCLUDE_DIRS . src 
   )
-
   return()
+endif()
+
+# Link STM32CubeMX interface to get HAL headers
+if(TARGET stm32cubemx)
+  add_library(RadioLib ${RADIOLIB_SOURCES}
+          src/hal/Stm32CubeWl/Stm32WlCubeHal.h
+          src/hal/Stm32CubeWl/Stm32WlCubeHal.cpp)
+  target_link_libraries(RadioLib PRIVATE stm32cubemx)
 endif()
 
 if(CMAKE_SCRIPT_MODE_FILE)
@@ -26,8 +33,6 @@ if(CMAKE_SCRIPT_MODE_FILE)
 endif()
 
 project(radiolib)
-
-add_library(RadioLib ${RADIOLIB_SOURCES})
 
 target_include_directories(RadioLib
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
