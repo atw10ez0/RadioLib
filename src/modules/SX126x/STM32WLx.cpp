@@ -84,6 +84,13 @@ int16_t STM32WLx::setOutputPower(int8_t power) {
   const Module* mod = this->getMod();
   bool hp_supported = mod->findRfSwitchMode(MODE_TX_HP);
   bool lp_supported = mod->findRfSwitchMode(MODE_TX_LP);
+
+  // if the user did not define any RF switch modes, assume both PAs are supported
+  if(!hp_supported && !lp_supported) {
+    hp_supported = true;
+    lp_supported = true;
+  }
+
   if((!lp_supported && (power < -9)) || (!hp_supported && (power > 14))) {
     // LP not supported but requested power is below HP low bound or
     // HP not supported but requested power is above LP high bound
@@ -96,19 +103,19 @@ int16_t STM32WLx::setOutputPower(int8_t power) {
     // both PAs supported, use HP when above 14 dBm
     if(power > 14) {
       RADIOLIB_CHECK_RANGE(power, -9, 22, RADIOLIB_ERR_INVALID_OUTPUT_POWER);
-      state = SX126x::setPaConfig(0x04, 0x00, 0x07); // HP output up to 22dBm
+      state = SX126x::setPaConfig(0x04, 0x00, 0x07); // Optimized for 22dBm HP
       this->txMode = MODE_TX_HP;
       use_hp = true;
     } else {
       RADIOLIB_CHECK_RANGE(power, -17, 14, RADIOLIB_ERR_INVALID_OUTPUT_POWER);
-      state = SX126x::setPaConfig(0x04, 0x01, 0x00); // LP output up to 14dBm
+      state = SX126x::setPaConfig(0x02, 0x01, 0x00); // Optimized for 14dBm LP
       this->txMode = MODE_TX_LP;
     }
   
   } else if(!hp_supported && lp_supported) {
     // only LP supported
     RADIOLIB_CHECK_RANGE(power, -17, 14, RADIOLIB_ERR_INVALID_OUTPUT_POWER);
-    state = SX126x::setPaConfig(0x04, 0x01, 0x00);
+    state = SX126x::setPaConfig(0x02, 0x01, 0x00);
     this->txMode = MODE_TX_LP;
 
   } else if(hp_supported && !lp_supported) {
@@ -137,6 +144,20 @@ int16_t STM32WLx::setOutputPower(int8_t power) {
   return(writeRegister(RADIOLIB_SX126X_REG_OCP_CONFIGURATION, &ocp, 1));
 }
 
+int16_t STM32WLx::setRegulatorDCDC() {
+  // 1. Taktdetektion aktivieren (CLKDE Bit in SMPSC0R)
+  uint8_t smpsc0r = 0;
+  int16_t state = this->readRegister(0x0916, &smpsc0r, 1);
+  if (state == RADIOLIB_ERR_NONE) {
+    smpsc0r |= (1 << 1); // Setze CLKDE Bit
+    state = this->writeRegister(0x0916, &smpsc0r, 1);
+    RADIOLIB_ASSERT(state);
+  }
+
+  // 2. Den eigentlichen DCDC-Modus aktivieren
+  return(this->setRegulatorMode(RADIOLIB_SX126X_REGULATOR_DC_DC));
+}
+
 int16_t STM32WLx::clearIrqStatus(uint16_t clearIrqParams) {
   int16_t res = SX126x::clearIrqStatus(clearIrqParams);
   // The NVIC interrupt is level-sensitive, so clear away any pending
@@ -149,7 +170,7 @@ int16_t STM32WLx::clearIrqStatus(uint16_t clearIrqParams) {
     SubGhz.enableInterrupt();
 #elif defined(STM32CubeWL)
   HAL_NVIC_ClearPendingIRQ(SUBGHZ_Radio_IRQn);
-  HAL_NVIC_EnableIRQ(SUBGHZ_Radio_IRQn);
+  // HAL_NVIC_EnableIRQ(SUBGHZ_Radio_IRQn);
 #endif
   return(res);
 }

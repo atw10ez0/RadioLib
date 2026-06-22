@@ -37,144 +37,152 @@ class STM32WLx : public SX1262 {
   // NOTE: This class could not be named STM32WL (or STM32WLxx), since
   // those are macros defined by
   // system/Drivers/CMSIS/Device/ST/STM32WLxxx/Include/stm32wlxx.h
-  public:
-    /*!
-      \brief Default constructor.
-      \param mod Instance of STM32WLx_Module that will be used to communicate with the radio.
-    */
-    STM32WLx(Module* mod); // cppcheck-suppress noExplicitConstructor
+public:
+  /*!
+    \brief Default constructor.
+    \param mod Instance of STM32WLx_Module that will be used to communicate with the radio.
+  */
+  STM32WLx(Module *mod); // cppcheck-suppress noExplicitConstructor
 
-    /*!
-      \brief Custom operation modes for STMWLx.
-     
-      This splits the TX mode into two modes: Low-power and high-power.
-      These constants can be used with the setRfSwitchTable() method,
-      instead of the Module::OpMode_t constants.
-    */
-    enum OpMode_t {
-        /*! End of table marker, use \ref END_OF_MODE_TABLE constant instead */
-        MODE_END_OF_TABLE = Module::MODE_END_OF_TABLE,
-        /*! Idle mode */
-        MODE_IDLE = Module::MODE_IDLE,
-        /*! Receive mode */
-        MODE_RX = Module::MODE_RX,
-        /*! Low power transmission mode */
-        MODE_TX_LP = Module::MODE_TX,
-        /*! High power transmission mode */
-        MODE_TX_HP,
-    };
+  /*!
+    \brief Custom operation modes for STMWLx.
 
-    // basic methods
-    
-    /*!
-      \copydoc SX1262::begin
-    */
-    int16_t begin(const ConfigLoRa_t& config) override;
+    This splits the TX mode into two modes: Low-power and high-power.
+    These constants can be used with the setRfSwitchTable() method,
+    instead of the Module::OpMode_t constants.
+  */
+  enum OpMode_t {
+    /*! End of table marker, use \ref END_OF_MODE_TABLE constant instead */
+    MODE_END_OF_TABLE = Module::MODE_END_OF_TABLE,
+    /*! Idle mode */
+    MODE_IDLE = Module::MODE_IDLE,
+    /*! Receive mode */
+    MODE_RX = Module::MODE_RX,
+    /*! Low power transmission mode */
+    MODE_TX_LP = Module::MODE_TX,
+    /*! High power transmission mode */
+    MODE_TX_HP,
+  };
 
-    /*!
-      \copydoc SX1262::begin
-    */
-    int16_t begin(float freq = 434.0, float bw = 125.0, uint8_t sf = 9, uint8_t cr = 7, uint8_t syncWord = RADIOLIB_SX126X_SYNC_WORD_PRIVATE, int8_t power = 10, uint16_t preambleLength = 8, float tcxoVoltage = 1.6, bool useRegulatorLDO = false) override;
-    
-    /*!
-      \copydoc SX1262::beginFSK
-    */
-    int16_t beginFSK(const ConfigFSK_t& config) override;
+  // basic methods
 
-    /*!
-      \copydoc SX1262::beginFSK
-    */
-    int16_t beginFSK(float freq = 434.0, float br = 4.8, float freqDev = 5.0, float rxBw = 156.2, int8_t power = 10, uint16_t preambleLength = 16, float tcxoVoltage = 1.6, bool useRegulatorLDO = false) override;
+  /*!
+    \copydoc SX1262::begin
+  */
+  int16_t begin(const ConfigLoRa_t &config) override;
 
-    // configuration methods
+  /*!
+    \copydoc SX1262::begin
+  */
+  int16_t begin(float freq = 434.0, float bw = 125.0, uint8_t sf = 9, uint8_t cr = 7,
+                uint8_t syncWord = RADIOLIB_SX126X_SYNC_WORD_PRIVATE, int8_t power = 10, uint16_t preambleLength = 8,
+                float tcxoVoltage = 1.6, bool useRegulatorLDO = true) override;
 
-    /*!
-      \brief Sets output power. Allowed values are in range from -17 to 22 dBm.
+  /*!
+    \copydoc SX1262::beginFSK
+  */
+  int16_t beginFSK(const ConfigFSK_t &config) override;
 
-      This automatically switches between the low-power (LP) and high-power (HP) amplifier.
+  /*!
+    \copydoc SX1262::beginFSK
+  */
+  int16_t beginFSK(float freq = 434.0, float br = 4.8, float freqDev = 5.0, float rxBw = 156.2, int8_t power = 10,
+                   uint16_t preambleLength = 16, float tcxoVoltage = 1.6, bool useRegulatorLDO = true) override;
 
-      LP is preferred and supports -17 to +14dBm. When a higher power is
-      requested (or the LP amplifier is marked as unavailable using
-      setRfSwitchTable()), HP is used, which supports -9 to +22dBm. If the LP is marked as unavailable,
-      HP output will be used instead.
+  // configuration methods
 
-      \param power Output power to be set in dBm.
+  /*!
+    \brief Sets output power. Allowed values are in range from -17 to 22 dBm.
 
-      \returns \ref status_codes
-    */
-    virtual int16_t setOutputPower(int8_t power) override;
+    This automatically switches between the low-power (LP) and high-power (HP) amplifier.
 
-    /*!
-      \copybrief Module::setRfSwitchTable
+    LP is preferred and supports -17 to +14dBm. When a higher power is
+    requested (or the LP amplifier is marked as unavailable using
+    setRfSwitchTable()), HP is used, which supports -9 to +22dBm. If the LP is marked as unavailable,
+    HP output will be used instead.
 
-      This method works like Module::setRfSwitchTable(), except that you
-      should use STM32WLx::OpMode_t constants for modes, which
-      distinguishes between a low-power (LP) and high-power (HP) TX mode.
+    \param power Output power to be set in dBm.
 
-      For boards that do not support both modes, just omit the
-      unsupported mode from the table and it will not be used (and the
-      valid power range is adjusted by setOutputPower() accordingly).
+    \returns \ref status_codes
+  */
+  int16_t setOutputPower(int8_t power) override;
 
-      Note that the setRfSwitchTable() method should be called *before* the
-      begin() method, to ensure the radio knows which modes are supported
-      during initialization.
-     */
-    // Note: This explicitly inherits this method only to override docs
-    using SX126x::setRfSwitchTable;
+  /*!
+    \copybrief Module::setRfSwitchTable
 
-  #if defined(ARDUINO_ARCH_STM32)
-    /*!
-      \brief Sets interrupt service routine to call when DIO1/2/3 activates.
-      \param func ISR to call.
-    */
-    void setDio1Action(void (*func)(void)) override;
+    This method works like Module::setRfSwitchTable(), except that you
+    should use STM32WLx::OpMode_t constants for modes, which
+    distinguishes between a low-power (LP) and high-power (HP) TX mode.
 
-    /*!
-      \brief Clears interrupt service routine to call when DIO1/2/3 activates.
-    */
-    void clearDio1Action() override;
-  #endif  // ARDUINO_ARCH_STM32
+    For boards that do not support both modes, just omit the
+    unsupported mode from the table and it will not be used (and the
+    valid power range is adjusted by setOutputPower() accordingly).
 
-    /*!
-      \brief Sets interrupt service routine to call when a packet is received.
-      \param func ISR to call.
-    */
-    void setPacketReceivedAction(void (*func)(void)) override;
+    Note that the setRfSwitchTable() method should be called *before* the
+    begin() method, to ensure the radio knows which modes are supported
+    during initialization.
+   */
+  // Note: This explicitly inherits this method only to override docs
+  using SX126x::setRfSwitchTable;
 
-    /*!
-      \brief Clears interrupt service routine to call when a packet is received.
-    */
-    void clearPacketReceivedAction() override;
+  virtual int16_t setRegulatorDCDC() override;
 
-    /*!
-      \brief Sets interrupt service routine to call when a packet is sent.
-      \param func ISR to call.
-    */
-    void setPacketSentAction(void (*func)(void)) override;
 
-    /*!
-      \brief Clears interrupt service routine to call when a packet is sent.
-    */
-    void clearPacketSentAction() override;
+#if defined(ARDUINO_ARCH_STM32)
+  /*!
+    \brief Sets interrupt service routine to call when DIO1/2/3 activates.
+    \param func ISR to call.
+  */
+  void setDio1Action(void (*func)(void)) override;
 
-    /*!
-      \brief Sets interrupt service routine to call when a channel scan is finished.
-      \param func ISR to call.
-    */
-    void setChannelScanAction(void (*func)(void)) override;
+  /*!
+    \brief Clears interrupt service routine to call when DIO1/2/3 activates.
+  */
+  void clearDio1Action() override;
+#endif  // ARDUINO_ARCH_STM32
 
-    /*!
-      \brief Clears interrupt service routine to call when a channel scan is finished.
-    */
-    void clearChannelScanAction() override;
+  /*!
+    \brief Sets interrupt service routine to call when a packet is received.
+    \param func ISR to call.
+  */
+  void setPacketReceivedAction(void (*func)(void)) override;
+
+  /*!
+    \brief Clears interrupt service routine to call when a packet is received.
+  */
+  void clearPacketReceivedAction() override;
+
+  /*!
+    \brief Sets interrupt service routine to call when a packet is sent.
+    \param func ISR to call.
+  */
+  void setPacketSentAction(void (*func)(void)) override;
+
+  /*!
+    \brief Clears interrupt service routine to call when a packet is sent.
+  */
+  void clearPacketSentAction() override;
+
+  /*!
+    \brief Sets interrupt service routine to call when a channel scan is finished.
+    \param func ISR to call.
+  */
+  void setChannelScanAction(void (*func)(void)) override;
+
+  /*!
+    \brief Clears interrupt service routine to call when a channel scan is finished.
+  */
+  void clearChannelScanAction() override;
 
 #if !RADIOLIB_GODMODE
-  protected:
+
+protected:
 #endif
-    virtual int16_t clearIrqStatus(uint16_t clearIrqParams) override;
+  virtual int16_t clearIrqStatus(uint16_t clearIrqParams) override;
 
 #if !RADIOLIB_GODMODE
-  private:
+
+private:
 #endif
 };
 

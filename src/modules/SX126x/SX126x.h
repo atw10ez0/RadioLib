@@ -677,13 +677,13 @@ class SX126x: public PhysicalLayer {
       \brief Set regulator mode to LDO.
       \returns \ref status_codes
     */
-    int16_t setRegulatorLDO();
+    virtual int16_t setRegulatorLDO();
 
     /*!
       \brief Set regulator mode to DC-DC.
       \returns \ref status_codes
     */
-    int16_t setRegulatorDCDC();
+    virtual int16_t setRegulatorDCDC();
 
     /*!
       \brief Sets transmission encoding. Available in FSK mode only. Serves only as alias for PhysicalLayer compatibility.

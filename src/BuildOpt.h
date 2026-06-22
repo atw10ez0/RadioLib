@@ -14,16 +14,16 @@
  *         SPI - full transcript of all SPI communication
  */
 #if !defined(RADIOLIB_DEBUG_BASIC)
-  #define RADIOLIB_DEBUG_BASIC (0)
+  #define RADIOLIB_DEBUG_BASIC (1)
 #endif
 #if !defined(RADIOLIB_DEBUG_PROTOCOL)
-  #define RADIOLIB_DEBUG_PROTOCOL (0)
+  #define RADIOLIB_DEBUG_PROTOCOL (1)
 #endif
 #if !defined(RADIOLIB_DEBUG_SPI)
-  #define RADIOLIB_DEBUG_SPI (0)
+  #define RADIOLIB_DEBUG_SPI (1)
 #endif
 #if !defined(RADIOLIB_VERBOSE_ASSERT)
-  #define RADIOLIB_VERBOSE_ASSERT (0)
+  #define RADIOLIB_VERBOSE_ASSERT (1)
 #endif
 
 // set which output port should be used for debug output

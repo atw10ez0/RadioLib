@@ -82,10 +82,17 @@ uint32_t Stm32WlCubeHal::digitalRead(uint32_t pin) {
       // The RFBUSYS flag in the Power Control Register 2 indicates the radio state
       return (PWR->SR2 & PWR_SR2_RFBUSYS) ? HIGH : LOW;
 
-    case RADIOLIB_STM32WL_VIRTUAL_PIN_IRQ:
+    case RADIOLIB_STM32WL_VIRTUAL_PIN_IRQ: {
       // The internal Radio IRQ is mapped directly to the NVIC (Interrupt 50)
       // Polling the pending state effectively reads the hardware IRQ line
-      return HAL_NVIC_GetPendingIRQ(SUBGHZ_Radio_IRQn) ? HIGH : LOW;
+      bool pending = HAL_NVIC_GetPendingIRQ(SUBGHZ_Radio_IRQn);
+      #if RADIOLIB_DEBUG
+      if(pending) {
+        // RADIOLIB_DEBUG_BASIC_PRINTLN("IRQ Pending detected");
+      }
+      #endif
+      return pending ? HIGH : LOW;
+    }
 
     case RADIOLIB_STM32WL_VIRTUAL_PIN_NSS:
       return (PWR->SUBGHZSPICR & PWR_SUBGHZSPICR_NSS) ? HIGH : LOW;
@@ -123,9 +130,10 @@ void Stm32WlCubeHal::delay(RadioLibTime_t ms) {
 }
 
 void Stm32WlCubeHal::delayMicroseconds(RadioLibTime_t us) {
-  uint32_t start = HAL_GetTick();
-  // Rough approximation since HAL_GetTick provides ms resolution
-  while ((HAL_GetTick() - start) < (us / 1000 + 1));
+  uint32_t start = this->micros();
+  while (this->micros() - start < us) {
+    this->yield();
+  }
 }
 
 RadioLibTime_t Stm32WlCubeHal::millis() {
@@ -133,7 +141,17 @@ RadioLibTime_t Stm32WlCubeHal::millis() {
 }
 
 RadioLibTime_t Stm32WlCubeHal::micros() {
-  return HAL_GetTick() * 1000UL;
+  uint32_t ms = HAL_GetTick();
+  uint32_t load = SysTick->LOAD;
+  uint32_t val = SysTick->VAL;
+
+  // Check for overflow
+  if ((SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) && (val > (load / 2))) {
+    ms = HAL_GetTick();
+    val = SysTick->VAL;
+  }
+
+  return (RadioLibTime_t)ms * 1000 + (load - val) / (SystemCoreClock / 1000000);
 }
 
 void Stm32WlCubeHal::spiBegin() {
